@@ -1,0 +1,66 @@
+name: Build FaunaPricer APK
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: # Позволяет запускать вручную
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+        cache: true
+    
+    - name: Install dependencies
+      run: flutter pub get
+    
+    - name: Build APK
+      run: flutter build apk --release
+    
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: fauna-pricer-apk
+        path: build/app/outputs/flutter-apk/app-release.apk
+        retention-days: 30
+    
+    - name: Create Release
+      if: github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: build/app/outputs/flutter-apk/app-release.apk
+        name: FaunaPricer v1.0.0
+        tag_name: v1.0.0
+        body: |
+          ## FaunaPricer - Оценка опционов (Black-Scholes)
+          
+          Мобильное приложение для расчёта теоретической цены европейских опционов.
+          
+          ### Что включено:
+          - ✅ Полная модель Black-Scholes
+          - ✅ Расчёт всех греков (Delta, Gamma, Vega, Theta)
+          - ✅ Интерактивный график
+          - ✅ Поддержка разных единиц времени
+          - ✅ Российская локализация (₽)
+          
+          ### Установка:
+          1. Скачайте APK файл
+          2. Включите "Установка из неизвестных источников" на Android
+          3. Установите APK
+          
+          ### Тестирование:
+          Используйте тестовые данные: S=100, K=100, σ=20%, r=0.05, T=1 год, Call
+          Ожидаемая цена ≈ 10.45 ₽
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
